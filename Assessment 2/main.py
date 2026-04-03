@@ -5,7 +5,7 @@ import json
 import os
 import requests as req
 import random
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, ImageDraw
 from io import BytesIO
 from CTkListbox import CTkListbox
 
@@ -86,6 +86,40 @@ search_var = tk.StringVar()
 # =====================================================
 home_frame = ctk.CTkFrame(root)
 home_frame.pack(fill="both", expand=True)
+
+# -----------------------------
+# Logo (Circle Mask)
+# -----------------------------
+logo_path = os.path.join(BASE_DIR, "fnb.png")
+
+if os.path.exists(logo_path):
+    size = (120, 120)  # final size
+    padding = 5
+
+    # Load and resize image
+    img = Image.open(logo_path).convert("RGBA")
+    img = img.resize(size, Image.LANCZOS)
+
+    # Create circular mask
+    mask = Image.new("L", size, 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse(
+    (padding, padding, size[0] - padding, size[1] - padding),
+    fill=255
+    )
+
+    # Apply mask
+    img.putalpha(mask)
+
+    # Convert to CTkImage
+    logo_ctk = ctk.CTkImage(
+        light_image=img,
+        dark_image=img,
+        size=size
+    )
+
+    logo_label = ctk.CTkLabel(home_frame, image=logo_ctk, text="")
+    logo_label.pack(pady=(20, 10))
 
 ctk.CTkLabel(
     home_frame,
