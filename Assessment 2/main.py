@@ -80,6 +80,7 @@ title_var = tk.StringVar()
 ingredients_var = tk.StringVar()
 instructions_var = tk.StringVar()
 search_var = tk.StringVar()
+search_results = []
 
 # =====================================================
 # PAGE 1 — HOME
@@ -140,48 +141,40 @@ suggestions.pack(pady=5)
 
 def update_suggestions(*_):
     suggestions.delete(0, tk.END)
+    search_results.clear()
+
     query = search_var.get().strip()
 
     if len(query) < 2:
         return
 
-    # --- Search meals ---
+    # Meals
     meals = [m for m in search_meal(query) if meal_passes_filters(m)][:5]
     for meal in meals:
-        suggestions.insert(
-            tk.END,
-            f"🍽 {meal['strMeal']}"
-        )
+        suggestions.insert(tk.END, f"🍽 {meal['strMeal']}")
+        search_results.append(("meal", meal))
 
-    # --- Search drinks ---
+    # Drinks
     drinks = [d for d in search_drink(query) if drink_passes_filters(d)][:5]
     for drink in drinks:
-        suggestions.insert(
-            tk.END,
-            f"🍹 {drink['strDrink']}"
-        )
+        suggestions.insert(tk.END, f"🍹 {drink['strDrink']}")
+        search_results.append(("drink", drink))
 
 search_var.trace_add("write", update_suggestions)
 
 def select_suggestion(event):
-    if not suggestions.curselection():
+    selection = suggestions.curselection()
+
+    if selection is None:
         return
 
-    value = suggestions.get(tk.ACTIVE)
+    index = selection
 
-    # Meal
-    if value.startswith("🍽"):
-        name = value.replace("🍽 ", "")
-        results = search_meal(name)
-        if results:
-            display_item(results[0], "meal")
+    if index >= len(search_results):
+        return
 
-    # Drink
-    elif value.startswith("🍹"):
-        name = value.replace("🍹 ", "")
-        results = search_drink(name)
-        if results:
-            display_item(results[0], "drink")
+    item_type, item = search_results[index]
+    display_item(item, item_type)
 
 suggestions.bind("<<ListboxSelect>>", select_suggestion)
 
@@ -784,7 +777,17 @@ def meal_passes_filters(meal):
     return True
 
 def drink_passes_filters(drink):
+    if diet_vars["Halal"].get():
+        alcoholic = drink.get("strAlcoholic", "").lower()
+        if alcoholic != "non alcoholic":
+            return False
+    if diet_vars["Non-Alcoholic"].get():
+        alcoholic = drink.get("strAlcoholic", "").lower()
+        if alcoholic != "non alcoholic":
+            return False
     if diet_vars["Keto"].get() and not is_keto_drink(drink):
+        return False
+    if diet_vars["Vegetarian"].get() and not is_vegan_drink(drink):
         return False
     if diet_vars["Vegan"].get() and not is_vegan_drink(drink):
         return False
